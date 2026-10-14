@@ -1,0 +1,98 @@
+name: lasso-guardrail
+version: v0.1.0
+description: |
+  Screens LLM chat prompts and/or completions with Lasso Security's
+  classify/classifix API. Blocks on any BLOCK-severity finding (jailbreak,
+  prompt injection, harmful content, PII, code-security issues, custom
+  policy violations) and, optionally, masks AUTO_MASKING findings by
+  rewriting the offending message content in place.
+
+parameters:
+  type: object
+  properties:
+    request:
+      type: object
+      x-wso2-policy-advanced-param: false
+      description: Screen the prompt (the request body's `messages`) before it reaches the model.
+      properties:
+        passthroughOnError:
+          type: boolean
+          x-wso2-policy-advanced-param: true
+          description: |
+            Allow the request through if the Lasso API call fails or times
+            out (fail-open). False fails closed (blocks with 503) on error.
+            Auth errors (invalid API key) always block regardless of this
+            setting — a misconfigured key must not silently disable the
+            guardrail.
+          default: true
+        includeTools:
+          type: boolean
+          x-wso2-policy-advanced-param: true
+          description: Forward the request's `tools` definitions to Lasso for tool-aware classification.
+          default: true
+    response:
+      type: object
+      x-wso2-policy-advanced-param: false
+      description: Screen the completion (the response body's `choices[].message`) before it reaches the client.
+      properties:
+        passthroughOnError:
+          type: boolean
+          x-wso2-policy-advanced-param: true
+          description: Same fail-open/fail-closed behavior as request.passthroughOnError, for the response-phase call.
+          default: true
+    masking:
+      type: boolean
+      x-wso2-policy-advanced-param: false
+      description: |
+        Use Lasso's /classifix endpoint and rewrite AUTO_MASKING findings in
+        place instead of only blocking/allowing via /classify. A BLOCK
+        finding still blocks even when masking is enabled — block always
+        wins over mask.
+      default: false
+    sessionHeader:
+      type: string
+      x-wso2-policy-advanced-param: true
+      description: |
+        Inbound header carrying a client-supplied conversation id. Reused
+        across turns so Lasso aggregates one dialogue instead of scoring
+        each request in isolation. Falls back to the gateway's own
+        per-request id when the header is absent (still correlates one
+        request's prompt with its completion).
+      default: "x-session-id"
+    userHeader:
+      type: string
+      x-wso2-policy-advanced-param: true
+      description: Inbound header carrying a stable end-user identifier, forwarded to Lasso as `userId`.
+      default: "x-lasso-user-id"
+    sourceType:
+      type: string
+      x-wso2-policy-advanced-param: true
+      description: Reported to Lasso as `source.type` (shows up as the "used by" badge in the Lasso UI).
+      default: "wso2-ai-gateway"
+    timeoutMillis:
+      type: integer
+      x-wso2-policy-advanced-param: true
+      minimum: 100
+      maximum: 60000
+      default: 10000
+  anyOf:
+    - required: [ request ]
+    - required: [ response ]
+
+systemParameters:
+  type: object
+  additionalProperties: false
+  properties:
+    lassoApiKey:
+      type: string
+      minLength: 1
+      description: Lasso Security API key, sent as the `lasso-api-key` request header.
+      "wso2/defaultValue": "${config.policy_configurations.lasso_guardrail_v0.lasso_api_key}"
+    lassoApiBase:
+      type: string
+      format: uri
+      description: Base URL of the Lasso Security gateway API (no trailing slash).
+      default: "https://server.lasso.security/gateway/v3"
+      "wso2/defaultValue": "${config.policy_configurations.lasso_guardrail_v0.lasso_api_base}"
+  required:
+    - lassoApiKey

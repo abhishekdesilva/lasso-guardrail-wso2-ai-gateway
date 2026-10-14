@@ -1,0 +1,12 @@
+# Add this service to the AI Gateway's docker-compose.yaml to run the mock
+# Lasso server alongside the gateway (on the same network).
+services:
+  lasso-mock:
+    image: python:3.12-slim
+    # -u: unbuffered stdout — otherwise Python block-buffers when stdout
+    # isn't a TTY and nothing ever reaches `docker compose logs`.
+    command: ["python", "-u", "/app/server.py"]
+    volumes:
+      - ./mock-lasso-server/server.py:/app/server.py:ro
+    networks:
+      - gateway-network

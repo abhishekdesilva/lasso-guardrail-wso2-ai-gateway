@@ -1,0 +1,4 @@
+# configs/config.toml — system parameters for the lasso-guardrail policy
+[policy_configurations.lasso_guardrail_v0]
+lasso_api_key = '{{ env "APIP_GW_LASSO_API_KEY" "REPLACE_WITH_REAL_LASSO_API_KEY" }}'
+lasso_api_base = '{{ env "APIP_GW_LASSO_API_BASE" "https://server.lasso.security/gateway/v3" }}'

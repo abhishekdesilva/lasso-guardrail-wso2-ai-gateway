@@ -1,0 +1,31 @@
+apiVersion: gateway.wso2.com/v1
+kind: RestApi
+metadata:
+  name: openai-lasso-mock
+spec:
+  displayName: OpenAI Lasso PII Mock
+  version: v1.0
+  context: /openai-lasso-mock
+  upstream:
+    main:
+      url: https://api.openai.com/v1
+  operations:
+    - path: /chat/completions
+      method: POST
+  policies:
+    - name: set-headers
+      version: v1
+      params:
+        mode: set
+        request:
+          headers:
+            - name: Authorization
+              value: "Bearer <YOUR_OPENAI_API_KEY>"
+    - name: lasso-guardrail
+      version: v0
+      params:
+        request:
+          passthroughOnError: true
+        response:
+          passthroughOnError: true
+        masking: true
